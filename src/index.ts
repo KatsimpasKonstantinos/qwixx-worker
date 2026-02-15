@@ -18,6 +18,6 @@ export default {
 			return new Response(id.toString(), { status: 200 });
 		}
 
-		return new Response("Not Found", { status: 404 });
+		return new Response("Not Found: " + url.pathname, { status: 404 });
 	},
 } satisfies ExportedHandler<Env>;

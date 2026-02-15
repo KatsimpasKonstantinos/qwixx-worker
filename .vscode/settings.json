@@ -1,5 +1,7 @@
 {
 	"files.associations": {
 		"wrangler.json": "jsonc"
-	}
+	},
+	"snyk.advanced.organization": "5415eab4-4986-44ea-8cd4-cec45e62557c",
+	"snyk.advanced.autoSelectOrganization": true
 }

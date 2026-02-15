@@ -31,6 +31,7 @@ export class MyDurableObject extends DurableObject<Env> {
         server.addEventListener("error", (err) => {
             console.warn(`[Room ${roomId}] websocket error`, err);
         });
+
     }
 
     async fetch(request: Request): Promise<Response> {
@@ -45,6 +46,11 @@ export class MyDurableObject extends DurableObject<Env> {
         this.setupConnection(server, roomId);
         return new Response(null, { status: 101, webSocket: client });
     }
+
+    test(){
+        console.log("test");
+    }
+
 }
 
 function parseRoomIdFromPath(pathname: string): string | null {
