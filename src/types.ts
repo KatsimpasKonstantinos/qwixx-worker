@@ -13,7 +13,7 @@ export type Character = {
   avatar: number;
 }
 
-export type WebsocketRouteHandler = (server: WebSocket, roomId: string, users: User[], message: any) => void;
+export type WebsocketRouteHandler = (server: WebSocket, roomId: string, users: User[], websocketRequest: WebsocketRequest) => void;
 
 export type GameState = {
   papers: Map<User, Paper>;
@@ -59,3 +59,16 @@ export type PaperType = "default" | "longo";
 
 export type PaperModifier = "mixedColors" | "mixedNumbers";
 
+export type WebsocketReturnType = "ack" | "error" | "update";
+
+export function websocketReturn(type: WebsocketReturnType, message?: any) {
+  return JSON.stringify({ type, message });
+}
+
+export type WebsocketRequestType = "setName" | "setAvatar" | "ping";
+
+export type WebsocketRequest = {
+  type: WebsocketRequestType;
+  message: any;
+  userId: string;
+}

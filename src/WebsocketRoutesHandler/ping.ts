@@ -1,5 +1,5 @@
-import { User, WebsocketRouteHandler } from "../types";
+import { User, websocketReturn, WebsocketRouteHandler } from "../types";
 
-export const ping: WebsocketRouteHandler = (server: WebSocket, roomId: string, users: User[], message: any) => {
-    server.send(JSON.stringify({ type: "ack", timestamp: Date.now() }));
+export const ping: WebsocketRouteHandler = (server, roomId, users, websocketRequest) => {
+    server.send(websocketReturn("ack", new Date().toISOString()));
 }

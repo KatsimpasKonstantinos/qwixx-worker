@@ -1,17 +1,18 @@
-import { WebsocketRouteHandler } from "../types";
+import { websocketReturn, WebsocketRouteHandler } from "../types";
 import { getNameValidationError, isNameValid } from "../validators/name";
 
-export const name: WebsocketRouteHandler = (server, roomId, users, message) => {
+export const name: WebsocketRouteHandler = (server, roomId, users, websocketRequest) => {
     const user = users.find(u => u.connection === server);
     if (!user) {
         console.warn(`[Room ${roomId}] User not found for connection`);
-        server.send(JSON.stringify({ type: "error", message: "User not found for connection" }));
+        server.send(websocketReturn("error", "User not found for connection"));
         return;
     }
-    if (!isNameValid(message.name)) {
-        server.send(JSON.stringify({ type: "error", message: getNameValidationError(message.name) }));
+    const name = websocketRequest.message;
+    if (!isNameValid(name)) {
+        server.send(websocketReturn("error", getNameValidationError(name)));
         return;
     }
-    user.character.name = message.name;
-    server.send(JSON.stringify({ type: "ack", name: message.name }));
+    user.character.name = name;
+    server.send(websocketReturn("ack", name));
 }
