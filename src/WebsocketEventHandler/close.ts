@@ -1,10 +1,11 @@
-import { User } from "../types";
+import { Session, User } from "../types";
 
-export function handleWebsocketClose(roomId: string, users: User[]) {
+export function handleWebsocketClose(roomId: string, session: Session) {
     //this.Users = this.Users.filter(user => user.connection !== server);
     //delete user or not? (for reconnect)
+    console.log(`[Room ${roomId}] websocket connection closed`);
 
-    if (users.length === 0) {
+    if (session.gameState.users.length === 0) {
         console.log(`[Room ${roomId}] no users left — cleared internal state`);
     }
 }

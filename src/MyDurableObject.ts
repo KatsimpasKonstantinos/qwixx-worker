@@ -1,17 +1,43 @@
-import { User, websocketReturn } from "./types";
+import { Session, websocketReturnUpdate, } from "./types";
 import { DurableObject } from "cloudflare:workers";
 import { handleWebsocketError } from "./WebsocketEventHandler/error";
 import { handleWebsocketClose } from "./WebsocketEventHandler/close";
 import { handleWebsocketMessage } from "./WebsocketEventHandler/message";
-import { isValidUUIDv4 } from "./validators/UUIDv4";
+import { isUUIDv4Valid } from "./validators/UUIDv4";
+import { Clock } from "./clock";
+import { createPaper } from "./game/create-papers/create-paper";
 
 
 export class MyDurableObject extends DurableObject<Env> {
-    private Users: User[];
+    private session: Session;
+    private clock: Clock;
 
     constructor(state: DurableObjectState, env: Env) {
         super(state, env);
-        this.Users = [];
+        this.session = {
+            status: "waiting",
+            round: 0,
+            gameState: {
+                users: [],
+                rules: {
+                    maxMisses: 4,
+                    missPenalty: 5,
+                    crossesNeededToLock: 5,
+                    waitTime: 60,
+                    paperType: "default",
+                    paperModifiers: []
+                },
+                dices: [
+                    { color: "white", value: 1 },
+                    { color: "white", value: 1 },
+                    { color: "red", value: 1 },
+                    { color: "yellow", value: 1 },
+                    { color: "green", value: 1 },
+                    { color: "blue", value: 1 },
+                ]
+            }
+        }
+        this.clock = new Clock(this.session);
     }
 
     async fetch(request: Request): Promise<Response> {
@@ -23,17 +49,22 @@ export class MyDurableObject extends DurableObject<Env> {
             return new Response("Expected a WebSocket request", { status: 400 });
         }
 
+        if (!userId) {
+            return new Response("Missing or invalid userId query parameter", { status: 400 });
+        }
+
         const [client, server] = Object.values(new WebSocketPair());
         server.accept();
-        if (!this.Users.find(u => u.id === userId)) this.Users.push({ id: userId, character: { name: "Player", avatar: 1 }, connection: server });
-        server.send(websocketReturn("update", { roomId, userId }));
+        if (!this.session.gameState.users.find(u => u.id === userId)) this.session.gameState.users.push({ id: userId, character: { name: "Player", avatar: 1 }, playing: false, ready: false, connection: server, myTurn: false, paper: createPaper(this.session.gameState.rules.paperType, this.session.gameState.rules.paperModifiers) });
+
+        server.send(websocketReturnUpdate(this.session));
 
         server.addEventListener("message", (evt) => {
-            handleWebsocketMessage(server, roomId, evt, this.Users);
+            handleWebsocketMessage(server, roomId, evt, this.session, userId, this.clock);
         });
 
         server.addEventListener("close", () => {
-            handleWebsocketClose(roomId, this.Users);
+            handleWebsocketClose(roomId, this.session);
         });
 
         server.addEventListener("error", (error) => {
@@ -54,8 +85,10 @@ function isWebSocketUpgrade(request: Request): boolean {
     return (request.headers.get("Upgrade") ?? "").toLowerCase() === "websocket";
 }
 
-function parseUserIdFromQuery(url: URL): string {
+function parseUserIdFromQuery(url: URL) {
     const userId = url.searchParams.get("userId");
-    if (!userId || !isValidUUIDv4(userId)) return crypto.randomUUID();
+    if (!userId || !isUUIDv4Valid(userId)) {
+        return null;
+    }
     return userId;
 }

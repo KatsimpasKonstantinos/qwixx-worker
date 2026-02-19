@@ -1,18 +1,18 @@
-import { websocketReturn, WebsocketRouteHandler } from "../types";
+import { websocketReturnAck, websocketReturnError, WebsocketRouteHandler } from "../types";
 import { getNameValidationError, isNameValid } from "../validators/name";
 
-export const name: WebsocketRouteHandler = (server, roomId, users, websocketRequest) => {
-    const user = users.find(u => u.connection === server);
+export const name: WebsocketRouteHandler = (server, roomId, session, websocketRequest, userId) => {
+    const user = session.gameState.users.find(u => u.id === userId);
     if (!user) {
-        console.warn(`[Room ${roomId}] User not found for connection`);
-        server.send(websocketReturn("error", "User not found for connection"));
+        console.warn(`[Room ${roomId}] User ${websocketRequest.userId} not found for connection`);
+        server.send(websocketReturnError("setName", `User ${websocketRequest.userId} not found for connection`));
         return;
     }
     const name = websocketRequest.message;
     if (!isNameValid(name)) {
-        server.send(websocketReturn("error", getNameValidationError(name)));
+        server.send(websocketReturnError("setName", getNameValidationError(name)));
         return;
     }
     user.character.name = name;
-    server.send(websocketReturn("ack", name));
+    server.send(websocketReturnAck("setName", name));
 }

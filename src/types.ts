@@ -1,3 +1,5 @@
+import { Clock } from "./clock";
+
 export interface Env {
   GAME_SESSION: DurableObjectNamespace;
 }
@@ -5,7 +7,11 @@ export interface Env {
 export type User = {
   id: string;
   character: Character;
+  paper: Paper;
+  playing: boolean;
+  ready: boolean;
   connection: WebSocket;
+  myTurn: boolean;
 }
 
 export type Character = {
@@ -13,17 +19,23 @@ export type Character = {
   avatar: number;
 }
 
-export type WebsocketRouteHandler = (server: WebSocket, roomId: string, users: User[], websocketRequest: WebsocketRequest) => void;
+export type WebsocketRouteHandler = (server: WebSocket, roomId: string, session: Session, websocketRequest: WebsocketRequest, userId: string, clock: Clock) => void;
 
 export type GameState = {
-  papers: Map<User, Paper>;
+  users: User[];
   rules: Rules;
+  dices: Dice[];
 }
 
+export type Session = {
+  status: "waiting" | "playing" | "ended";
+  gameState: GameState;
+  round: number;
+}
 export type Color = "red" | "yellow" | "green" | "blue";
 
 export type Dice = {
-  color: Color;
+  color: Color | "white";
   value: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
@@ -61,11 +73,23 @@ export type PaperModifier = "mixedColors" | "mixedNumbers";
 
 export type WebsocketReturnType = "ack" | "error" | "update";
 
-export function websocketReturn(type: WebsocketReturnType, message?: any) {
+function websocketReturn(type: WebsocketReturnType, message: any) {
   return JSON.stringify({ type, message });
 }
 
-export type WebsocketRequestType = "setName" | "setAvatar" | "ping";
+export function websocketReturnError(type: WebsocketRequestType | "unknown", response: string) {
+  return websocketReturn("error", { type, response });
+}
+
+export function websocketReturnAck(type: WebsocketRequestType, response: any) {
+  return websocketReturn("ack", { type, response });
+}
+
+export function websocketReturnUpdate(update: Session) {
+  return websocketReturn("update", update);
+}
+
+export type WebsocketRequestType = "setName" | "setAvatar" | "ping" | "setReady";
 
 export type WebsocketRequest = {
   type: WebsocketRequestType;
